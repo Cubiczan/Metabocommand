@@ -395,7 +395,7 @@ The same pattern works on `/agent-log` with its own activity statuses (Idle / Re
 
 ## Requirements coverage
 
-Full spec at [`../MetaboCommand.md`](../MetaboCommand.md). Sections implemented:
+Full spec in `MetaboCommand.md` (maintained outside this repository). Sections implemented:
 
 - [x] §3.2 Authentication — login + role redirect
 - [x] §3.3 Global Navigation — role-aware sidebar
