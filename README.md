@@ -287,7 +287,7 @@ metabocommand/
 ### 2. Clone and install
 
 ```bash
-git clone https://github.com/zan-maker/metabocommand.git
+git clone https://github.com/icohangar-ops/metabocommand.git
 cd metabocommand
 npm install
 ```
