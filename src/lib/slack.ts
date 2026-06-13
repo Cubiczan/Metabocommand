@@ -1,4 +1,5 @@
 import type { ApprovalQueueName } from "./supabase/types";
+import { safeFetch } from "./resilience";
 
 export interface SlackNotificationPayload {
   queue: ApprovalQueueName;
@@ -68,10 +69,14 @@ export async function sendSlackNotification(
   };
 
   try {
-    const res = await fetch(webhookUrl, {
+    // 5s per-attempt timeout + retry/backoff so a hung webhook endpoint can
+    // never block the approval write path. safeFetch throws on network/timeout
+    // (caught below) rather than hanging on a bare fetch.
+    const res = await safeFetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(slackMessage),
+      timeoutMs: 5_000,
     });
     if (!res.ok) {
       return { ok: false, error: `Slack responded ${res.status}` };

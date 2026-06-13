@@ -213,16 +213,19 @@ create policy "activity_history_insert_self"
   to authenticated
   with check (user_id = auth.uid());
 
--- Slack settings: both roles can read and update
+-- Slack settings: any authenticated user can read, but a user may only update
+-- the webhook for their OWN queue/role. Prevents e.g. an operations user from
+-- overwriting the finance webhook.
 create policy "slack_settings_read_all_authenticated"
   on public.slack_settings for select
   to authenticated
   using (true);
 
-create policy "slack_settings_update_all_authenticated"
+create policy "slack_settings_update_own_queue"
   on public.slack_settings for update
   to authenticated
-  using (true);
+  using (queue::text = public.current_user_role()::text)
+  with check (queue::text = public.current_user_role()::text);
 
 -- ============================================================
 -- 8. REALTIME

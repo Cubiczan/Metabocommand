@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { safeFetch } from "@/lib/resilience";
 
 const testSchema = z.object({
   queue: z.enum(["finance", "operations"]),
@@ -21,12 +22,15 @@ export async function POST(request: Request) {
   }
 
   try {
-    const res = await fetch(parsed.data.webhook_url, {
+    // 5s per-attempt timeout + retry/backoff so a hung webhook URL cannot hang
+    // the request handler. Network/timeout failures throw and are caught below.
+    const res = await safeFetch(parsed.data.webhook_url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         text: `MetaboCommand test message — ${parsed.data.queue} channel configuration verified`,
       }),
+      timeoutMs: 5_000,
     });
     if (!res.ok) {
       return NextResponse.json({ error: `Slack responded ${res.status}` }, { status: 502 });
