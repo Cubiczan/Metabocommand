@@ -1,5 +1,7 @@
 # MetaboCommand
 
+> **Cubiczan stack** — [Profile](https://github.com/Cubiczan) · [software-factory](https://github.com/Cubiczan/software-factory) · **You are here:** `Metabocommand`
+
 **Metabolic Commerce Multi-Agent Platform** — an AI-agent orchestration dashboard for eCommerce finance and operations teams. Twelve specialized agents across five metabolic systems (Capital Reflex, Revenue Velocity, Inventory Intelligence, Customer Lifetime, Operational Health) surface anomalies, propose actions, and route decisions through role-scoped approval queues with realtime collaboration.
 
 Built on Next.js 16, Supabase (Auth + Postgres + Realtime + Presence), React 19, TypeScript, Tailwind 4, and Recharts.
@@ -427,6 +429,17 @@ Full spec in `MetaboCommand.md` (maintained outside this repository). Sections i
 - [ ] §4.6 Agent pause persistence — UI-only currently; trivial follow-up
 
 ---
+
+---
+
+## Cubiczan stack
+
+**Start here:** [software-factory](https://github.com/Cubiczan/software-factory) · [Profile](https://github.com/Cubiczan)
+
+| Finance | [Strata](https://github.com/Cubiczan/Strata) · [Metabocommand](https://github.com/Cubiczan/Metabocommand) · [meshcfo](https://github.com/Cubiczan/meshcfo) · [working-capital-optimizer](https://github.com/Cubiczan/working-capital-optimizer) · [cash-flow-optimizer](https://github.com/Cubiczan/cash-flow-optimizer) · [finance-cockpit](https://github.com/Cubiczan/finance-cockpit) |
+| Governance | [consensus-hardening-protocol](https://github.com/Cubiczan/consensus-hardening-protocol) · [agent-conductor](https://github.com/Cubiczan/agent-conductor) · [compliance-as-code-agent](https://github.com/Cubiczan/compliance-as-code-agent) · [cleanmandate](https://github.com/Cubiczan/cleanmandate) |
+
+Metabocommand routes agent proposals through **role-scoped approval queues** — the same human-in-the-loop pattern CHP locks and CleanMandate mandates enforce at the protocol layer.
 
 ## License
 
