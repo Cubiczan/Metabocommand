@@ -209,6 +209,86 @@ Geneva, January 11, 2026.
   - slack_settings
 ```
 
+## Stigmergic Coordination
+
+MetaboCommand coordinates ~12 agents (Pulse, Oracle, Sniper, Conductor,
+Acquisition, Conversion, Retention, Demand Prophet, Logistics Conductor,
+Support Reflex, Advocacy, Harmony). Historically these agents coordinated by
+**talking to each other through the LLM chat loop** — the Harmony Agent detected
+cross-agent conflicts by having agents converse. That cost grows **quadratically**
+with the number of agents: with `m` agents and `h̄` messages per pair,
+coordination costs `h̄·m(m+1)/2` LLM calls that produce no customer value.
+
+The `StigmergyBoard` (`src/lib/stigmergy/`) replaces those conversations with
+**stigmergy**: agents don't message each other, they leave short-lived "scent"
+signals on a shared board, and coordinate by *reading* the aggregated state of a
+region. This is the same zero-token pattern proven in the Cubiczan swarm packs
+(TEMM1E-derived scent field), where it measured **5.86× faster, 3.4× cheaper,
+and turned 78 coordination LLM calls into 0** at identical quality — because
+coordination becomes pure arithmetic instead of model round-trips.
+
+### The board API
+
+```ts
+import { StigmergyBoard } from "@/lib/stigmergy";
+
+const board = new StigmergyBoard(); // immutable in-memory store by default
+
+// Agents deposit scent instead of chatting:
+board.deposit_signal({ region: "meta-ads", agent: "Acquisition Agent", kind: "claim", strength: 1 });
+board.deposit_signal({ region: "meta-ads", agent: "Sniper Agent",      kind: "veto",  strength: 1 });
+
+// Any agent reads the aggregated, time-decayed state — zero LLM calls:
+board.read_signals("meta-ads"); // [{ kind: "claim", strength, agents }, { kind: "veto", ... }]
+
+// Spent signals evaporate so stale intent can't cause phantom conflicts:
+board.evaporate();
+```
+
+- **`deposit_signal(region, kind, strength)`** — writes one scent deposit
+  (id + timestamp filled in). Kinds: `completion`, `failure`, `difficulty`,
+  `urgency`, `progress`, `help_wanted`, `claim`, `veto`.
+- **`read_signals(region)`** — aggregated, **time-decayed** reading per kind.
+  Each kind decays on an exponential curve (`strength × e^(−λt)`, `λ = ln2 / half_life`);
+  `urgency` *grows* with age (capped) so starved work rises on its own.
+- **`evaporate()`** — purges signals whose decayed strength fell below the GC
+  threshold, keeping the board self-cleaning.
+
+### Storage
+
+The board is store-agnostic. The default `InMemorySignalStore` is **pure and
+immutable** (every write returns a fresh snapshot), matching the repo's
+immutability convention and staying safe in the client bundle. A durable
+`SqliteSignalStore` (`src/lib/stigmergy/sqlite-store.ts`) backs the board with
+Node's built-in `node:sqlite` — **zero new npm dependencies**, server-only, and
+never re-exported from the barrel so it can't leak into the browser. This proves
+the coordination surface needs nothing heavier than one table and two indexes —
+no external coordination service.
+
+### Wiring point (non-breaking)
+
+The coordination path is **feature-flagged and additive**. The Harmony Agent
+view calls `resolveHarmonyConflicts()` (`src/lib/stigmergy/coordination.ts`):
+
+- flag **off** (default) → returns the existing static conflict list unchanged;
+- flag **on** → conflicts are **derived from the board** via `detectConflicts()`
+  (a `claim` and an opposing `veto`/`failure`/`difficulty` from a *different*
+  agent on the same region), with **zero LLM calls**.
+
+Enable it by setting `NEXT_PUBLIC_STIGMERGY_COORDINATION=1` (client/view) or
+`STIGMERGY_COORDINATION=1` (server helpers).
+
+### Tests
+
+```bash
+npm run test:stigmergy
+```
+
+Runs `tests/stigmergy.test.ts` on Node's built-in test runner (no new deps),
+covering deposit/decay/read, evaporation, the SQLite-backed store, and
+board-derived conflict detection with an injectable clock for deterministic
+decay.
+
 ## Tech stack
 
 | Layer | Choice | Why |

@@ -11,11 +11,18 @@ import { Modal } from "@/components/ui/modal";
 import { KpiCard } from "@/components/kpi-card";
 import {
   harmonyKpis,
-  harmonyConflicts,
   harmonyBottlenecks,
   type OperatingMode,
 } from "@/lib/dummy-data-lifetime";
+import { resolveHarmonyConflicts } from "@/lib/stigmergy";
 import { formatDateTime, cn } from "@/lib/utils";
+
+// Cross-agent conflicts. With STIGMERGY_COORDINATION enabled these are derived
+// from the stigmergy board (zero LLM calls); otherwise the static list is used,
+// so default behaviour is unchanged. Computed once at module load for a stable,
+// deterministic render.
+const stigmergyEnabled = process.env.NEXT_PUBLIC_STIGMERGY_COORDINATION === "1";
+const harmonyConflicts = resolveHarmonyConflicts(stigmergyEnabled);
 
 export function HarmonyAgentView({ initialMode }: { initialMode: OperatingMode }) {
   const [isActive, setIsActive] = useState(true);
