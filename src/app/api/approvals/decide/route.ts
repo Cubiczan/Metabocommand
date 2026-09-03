@@ -1,16 +1,18 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { HitlService, SupabaseHitlStore, hitlStatus } from "@/lib/hitl";
 import { sendSlackNotification } from "@/lib/slack";
+import { getRequestUser } from "@/lib/supabase/request";
+import type { ApprovalQueueName } from "@/lib/supabase/types";
 
 const decideSchema = z.object({
   id: z.string().uuid(),
   decision: z.enum(["approved", "rejected"]),
+  note: z.string().min(1).optional(),
 });
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { supabase, user } = await getRequestUser(request);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -30,80 +32,50 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   }
 
-  // Fetch current item
-  const { data: item } = await supabase
-    .from("approval_items")
-    .select("*")
-    .eq("id", parsed.data.id)
-    .eq("queue", profile.role)
-    .single();
+  const appUrl = new URL(request.url).origin;
+  const service = new HitlService(new SupabaseHitlStore(supabase), {
+    async onDecided(item, actor, decision) {
+      const { data: slackSettings } = await supabase
+        .from("slack_settings")
+        .select("webhook_url, enabled")
+        .eq("queue", item.queue)
+        .single();
 
-  if (!item) {
-    return NextResponse.json({ error: "Item not found" }, { status: 404 });
-  }
-  if (item.status !== "pending") {
-    return NextResponse.json({ error: "Item already decided" }, { status: 409 });
-  }
-
-  const { error: updateError } = await supabase
-    .from("approval_items")
-    .update({
-      status: parsed.data.decision,
-      decided_at: new Date().toISOString(),
-      decided_by: profile.id,
-    })
-    .eq("id", parsed.data.id)
-    .eq("status", "pending");
-
-  if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
-  }
-
-  // Record activity history
-  await supabase.from("activity_history").insert({
-    user_id: profile.id,
-    user_display_name: profile.display_name,
-    user_email: profile.email,
-    user_role: profile.role,
-    activity_type: parsed.data.decision === "approved" ? "Approval — Approved" : "Approval — Rejected",
-    description: `${parsed.data.decision === "approved" ? "Approved" : "Rejected"} ${item.agent_name} proposal: ${item.action_description}`,
-    contextual_reference: item.id,
+      if (slackSettings?.enabled && slackSettings.webhook_url) {
+        await sendSlackNotification(slackSettings.webhook_url, {
+          queue: item.queue,
+          agent_name: item.agent_name,
+          action_description: item.action_description,
+          financial_impact: item.financial_impact,
+          approval_item_id: item.id,
+          app_url: appUrl,
+          event: decision,
+          decided_by: `${actor.displayName} (${actor.email})`,
+        });
+      }
+    },
   });
 
-  // Log to agent action log
-  await supabase.from("agent_action_log").insert({
-    agent_name: item.agent_name,
-    queue: item.queue,
-    action_type: "Decision",
-    description: item.action_description,
-    outcome: parsed.data.decision === "approved" ? "Approved" : "Rejected",
-    decided_by: `${profile.display_name} (${profile.email})`,
-    reasoning_summary: `Decision recorded by ${profile.display_name}${item.evidence_packet_id ? ` against evidence packet ${item.evidence_packet_id}` : ""}`,
-    approval_item_id: item.id,
-    evidence_packet_id: item.evidence_packet_id ?? null,
-    policy_flags: item.policy_flags ?? [],
-  });
-
-  // Slack confirmation
-  const { data: slackSettings } = await supabase
-    .from("slack_settings")
-    .select("webhook_url, enabled")
-    .eq("queue", item.queue)
-    .single();
-
-  if (slackSettings?.enabled && slackSettings.webhook_url) {
-    const appUrl = new URL(request.url).origin;
-    await sendSlackNotification(slackSettings.webhook_url, {
-      queue: item.queue,
-      agent_name: item.agent_name,
-      action_description: item.action_description,
-      financial_impact: item.financial_impact,
-      approval_item_id: item.id,
-      app_url: appUrl,
-      event: parsed.data.decision,
-      decided_by: `${profile.display_name} (${profile.email})`,
+  try {
+    const updated = await service.decideApproval({
+      id: parsed.data.id,
+      decision: parsed.data.decision,
+      note: parsed.data.note,
+      actor: {
+        id: profile.id,
+        displayName: profile.display_name,
+        email: profile.email,
+        role: profile.role as ApprovalQueueName,
+      },
     });
+    return NextResponse.json({
+      ok: true,
+      id: updated.id,
+      decision: updated.status,
+      note: parsed.data.note ?? null,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Decide failed";
+    return NextResponse.json({ error: message }, { status: hitlStatus(error) });
   }
-
-  return NextResponse.json({ ok: true });
 }

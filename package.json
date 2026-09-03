@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:stigmergy": "node --test --experimental-strip-types --import ./tests/register-ts.mjs tests/stigmergy.test.ts"
+    "test:stigmergy": "node --test --experimental-strip-types --import ./tests/register-ts.mjs tests/stigmergy.test.ts",
+    "test:hitl": "node --test --experimental-strip-types --import ./tests/register-ts.mjs tests/hitl.test.ts",
+    "test:mcp": "npm --prefix packages/metabocommand-mcp test"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

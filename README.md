@@ -143,6 +143,7 @@ After Phase 2b, the app is **feature-complete against the requirements spec** ex
   - **Support Reflex Agent** — inquiry volume bars, resolution time trend, recurring issue patterns with process improvements
   - **Advocacy Agent** — review volume trend, referral funnel, high-advocacy segment table
   - **Harmony Agent** — agent conflict feed, Growth/Efficiency operating mode toggle (confirmation modal + Realtime broadcast), system bottleneck feed
+- **HITL MCP** — stdio server `@cubiczan/metabocommand-mcp` wraps the approval queue and agent action log for Cursor / Claude Code (demo fixtures or live APIs)
 - **Approval Queue** — Realtime subscription + Presence + four activity status badges (Idle / Reviewing / Approving / Rejecting) + 60s idle timeout + Slack webhook notifications + RLS-enforced role scoping
 - **Governance Watchdog** — seniority-based agent permissions, default approval gates for high-impact actions, evidence packets, policy flags, and role-scoped evidence export
 - **Agent Action Log** — Realtime + Presence (Idle / Reviewing log / Filtering logs) + three-filter combination + expandable reasoning rows
@@ -190,9 +191,11 @@ Geneva, January 11, 2026.
       │                                                        - Activity-status broadcasts
       ▼                                                         │
   Route handlers                                                ▼
-  /api/approvals/submit                             Supabase JS (anon key + RLS)
-  /api/approvals/decide                             - postgres_changes on approval_items
-  /api/approvals/evidence                           - evidence packet export
+  /api/approvals            (GET list)              Supabase JS (anon key + RLS)
+  /api/approvals/submit                             - postgres_changes on approval_items
+  /api/approvals/decide                             - evidence packet export
+  /api/approvals/evidence
+  /api/agent-log            (GET list)
   - Zod validation                                  - postgres_changes on agent_action_log
   - Role check                                      - presence channel per page per role
   - Watchdog evidence packet
@@ -343,12 +346,14 @@ metabocommand/
 │   │   ├── kpi-card.tsx
 │   │   └── placeholder-page.tsx
 │   ├── lib/
+│   │   ├── hitl/                     # approval + action-log service (MCP + APIs)
 │   │   ├── supabase/                 # client / server / middleware / types
 │   │   ├── slack.ts                  # webhook payload builder
 │   │   ├── csv.ts                    # RFC-4180 CSV export
 │   │   ├── dummy-data.ts             # deterministic seeded chart data
 │   │   └── utils.ts                  # cn, formatters, avatar helpers
 │   └── middleware.ts                 # session refresh + auth redirect
+├── packages/metabocommand-mcp/       # stdio MCP (@cubiczan/metabocommand-mcp)
 ├── supabase/migrations/
 │   ├── 0001_schema.sql               # tables, types, RLS, realtime
 │   └── 0002_seed.sql                 # all seed records
@@ -441,6 +446,70 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) and sign in as Sarah or James.
+
+---
+
+## HITL MCP (Cursor / Claude Code)
+
+Cubiczan Metabocommand ships a stdio MCP so agents can use the **approval
+queue** and **agent action log** as tools. CHP is the lock; MCP is the pipe.
+Numeric spend/capital gates stay on [`@cubiczan/chp-mcp`](https://www.npmjs.com/package/@cubiczan/chp-mcp)
+(`evaluate_spend_gate` is not duplicated here).
+
+Intended package: [`@cubiczan/metabocommand-mcp`](packages/metabocommand-mcp).
+Default mode is **demo** (seed fixtures, no running dashboard). Live mode
+wraps the Next.js APIs and needs `npm run dev` plus a Supabase user JWT.
+
+```bash
+cd packages/metabocommand-mcp
+npm install
+npm run build
+```
+
+### Cursor `mcp.json`
+
+```json
+{
+  "mcpServers": {
+    "metabocommand": {
+      "command": "npx",
+      "args": ["-y", "@cubiczan/metabocommand-mcp"]
+    },
+    "chp": {
+      "command": "npx",
+      "args": ["-y", "@cubiczan/chp-mcp"]
+    }
+  }
+}
+```
+
+From this clone (before npm publish):
+
+```json
+{
+  "mcpServers": {
+    "metabocommand": {
+      "command": "node",
+      "args": ["packages/metabocommand-mcp/dist/index.js"],
+      "env": { "METABOCOMMAND_MODE": "demo" }
+    }
+  }
+}
+```
+
+### Claude Code
+
+```bash
+claude mcp add metabocommand -- npx -y @cubiczan/metabocommand-mcp
+```
+
+From this clone:
+
+```bash
+claude mcp add metabocommand -- node ./packages/metabocommand-mcp/dist/index.js
+```
+
+Full tool list and live-mode env: [packages/metabocommand-mcp/README.md](packages/metabocommand-mcp/README.md).
 
 ---
 

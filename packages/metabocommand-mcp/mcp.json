@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "metabocommand": {
+      "command": "npx",
+      "args": ["-y", "@cubiczan/metabocommand-mcp"],
+      "env": {
+        "METABOCOMMAND_MODE": "demo"
+      }
+    },
+    "chp": {
+      "command": "npx",
+      "args": ["-y", "@cubiczan/chp-mcp"]
+    }
+  }
+}

@@ -1,0 +1,7 @@
+schema: spec-driven
+
+context: |
+  Cubiczan Metabocommand is a Next.js approval-queue dashboard for eCommerce
+  finance and operations agents. CHP is the lock; MCP is the pipe.
+  Numeric spend/capital gates stay on @cubiczan/chp-mcp (do not duplicate
+  evaluate_spend_gate). This change adds the approval-queue MCP surface.

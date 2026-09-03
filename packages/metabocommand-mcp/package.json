@@ -1,0 +1,65 @@
+{
+  "name": "@cubiczan/metabocommand-mcp",
+  "version": "0.1.0",
+  "description": "Cubiczan Metabocommand HITL MCP — approval queues, Capital Reflex, and the agent action log for Cursor / Claude Code.",
+  "mcpName": "io.github.cubiczan/metabocommand-mcp",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "metabocommand-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node ./scripts/build.mjs",
+    "start": "node dist/index.js",
+    "dev": "node --import tsx src/index.ts",
+    "test": "npm run build && node --test --experimental-strip-types --import ./tests/register-ts.mjs tests/mcp.test.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "mcp-server",
+    "metabocommand",
+    "cubiczan",
+    "approval-queue",
+    "human-in-the-loop",
+    "hitl",
+    "agent-action-log",
+    "capital-reflex",
+    "claude",
+    "cursor"
+  ],
+  "author": "Shyam Desigan <sam@cubiczan.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Cubiczan/Metabocommand.git",
+    "directory": "packages/metabocommand-mcp"
+  },
+  "homepage": "https://github.com/Cubiczan/Metabocommand/tree/main/packages/metabocommand-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/Cubiczan/Metabocommand/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "esbuild": "^0.25.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

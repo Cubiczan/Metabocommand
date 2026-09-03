@@ -1,0 +1,24 @@
+{
+  "manifest_version": "0.2",
+  "name": "@cubiczan/metabocommand-mcp",
+  "version": "0.1.0",
+  "description": "Cubiczan Metabocommand HITL MCP — approval queues, Capital Reflex, and the agent action log.",
+  "author": {
+    "name": "Shyam Desigan <sam@cubiczan.com>"
+  },
+  "server": {
+    "type": "node",
+    "entry_point": "./dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": [
+        "${__dirname}/./dist/index.js"
+      ],
+      "env": {
+        "METABOCOMMAND_MODE": "demo"
+      }
+    }
+  },
+  "tools": [],
+  "license": "MIT"
+}

@@ -59,3 +59,7 @@ AGENTS.md
 
 # Rust
 /target/
+
+# MCP package (own lockfile + build)
+/packages/*/node_modules/
+/packages/*/dist/
